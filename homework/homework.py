@@ -2,6 +2,7 @@
 Escriba el codigo que ejecute la accion solicitada.
 """
 
+
 # pylint: disable=import-outside-toplevel
 
 
@@ -49,8 +50,32 @@ def clean_campaign_data():
 
 
     """
+    import os
+    import pandas as pd
 
-    return
+    def set_binary(value):
+        return lambda x: 1 if str(x).lower() == value else 0
+
+    input_dir = "files/input/"
+    output_dir = "files/output/"
+    os.makedirs(output_dir, exist_ok=True)
+    df = pd.concat((pd.read_csv(os.path.join(input_dir, file), compression="zip") for file in os.listdir(input_dir)), ignore_index=True)
+
+    df["job"] = df["job"].str.replace(".", "").str.replace("-", "_")
+    df["education"] = df["education"].str.replace(".", "_").replace("unknown", pd.NA)
+    df["credit_default"] = df["credit_default"].apply(set_binary("yes"))
+    df["mortgage"] = df["mortgage"].apply(set_binary("yes"))
+    df["previous_outcome"] = df["previous_outcome"].apply(set_binary("success"))
+    df["campaign_outcome"] = df["campaign_outcome"].apply(set_binary("yes"))
+    df["last_contact_date"] = pd.to_datetime(df["day"].astype(str) + "-" + df["month"] + "-2022", format="%d-%b-%Y")
+
+    client = df[["client_id", "age", "job", "marital", "education", "credit_default", "mortgage"]]
+    campaign = df[["client_id", "number_contacts", "contact_duration", "previous_campaign_contacts", "previous_outcome", "campaign_outcome", "last_contact_date"]]
+    economics = df[["client_id", "cons_price_idx", "euribor_three_months"]]
+
+    client.to_csv(os.path.join(output_dir, "client.csv"), index=False)
+    campaign.to_csv(os.path.join(output_dir, "campaign.csv"), index=False)
+    economics.to_csv(os.path.join(output_dir, "economics.csv"), index=False)
 
 
 if __name__ == "__main__":
